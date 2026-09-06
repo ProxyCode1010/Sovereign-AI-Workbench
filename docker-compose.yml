@@ -1,0 +1,50 @@
+version: "3.9"
+
+networks:
+  airgap_net:
+    driver: bridge
+    # internal: true   -- see note below, must stay commented for host.docker.internal to work
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sw_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sw_user
+      POSTGRES_PASSWORD: sw_pass
+      POSTGRES_DB: sovereign_workbench
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    networks:
+      - airgap_net
+    ports:
+      - "127.0.0.1:5433:5432"
+
+  backend:
+    build: ./backend
+    container_name: sw_backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgresql://sw_user:sw_pass@postgres:5432/sovereign_workbench
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - SANDBOX_IMAGE=sw_sandbox:latest
+      - HOST_SANDBOX_DIR_ABS=${HOST_SANDBOX_DIR_ABS}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/uploads:/app/data/uploads
+      - ./data/outputs:/app/data/outputs
+      - ./data/knowledge_base:/app/data/knowledge_base
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/sandbox_tmp:/app/data/sandbox_tmp
+    networks:
+      - airgap_net
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  pgdata:

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Sovereign AI Workbench</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #171a21; --border: #2a2e37; --border-hover: #3a3f4b;
+    --text: #e8e9ec; --text-dim: #9a9da6; --accent: #4f8cff; --accent-dim: #2a4a8a;
+    --success: #3ecf8e; --error: #f0574e; --mono: 'Consolas', 'Menlo', monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    max-width: 900px; margin: 0 auto; padding: 32px 20px 80px;
+  }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 20px; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 4px 10px; border-radius: 20px;
+    background: #1a2e22; color: var(--success); border: 1px solid #234;
+  }
+  .badge.offline { background: #2e1a1a; color: var(--error); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 20px;
+  }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent-dim); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .card h3 { font-size: 15px; font-weight: 600; margin: 0; }
+  .card-desc { color: var(--text-dim); font-size: 13px; margin: 4px 0 12px 34px; }
+  .model-tag {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    background: #1c2333; color: #7fa8f5; padding: 2px 8px; border-radius: 4px;
+    margin-left: 34px; margin-bottom: 14px;
+  }
+
+  input[type=text], input[type=file], textarea {
+    width: 100%; background: #10121a; border: 1px solid var(--border);
+    color: var(--text); padding: 10px 12px; border-radius: 8px;
+    font-size: 14px; font-family: inherit; margin-bottom: 10px;
+  }
+  input[type=text]:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  button {
+    background: var(--accent); color: white; border: none;
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s;
+  }
+  button:hover { background: #3f78e0; }
+  button:disabled { background: #2a2e37; color: var(--text-dim); cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; margin-bottom: 6px; }
+
+  .status-line {
+    display: flex; align-items: center; gap: 8px; font-size: 13px;
+    color: var(--text-dim); margin-top: 10px; min-height: 18px;
+  }
+  .spinner {
+    width: 13px; height: 13px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  .status-line.loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-box {
+    display: none; margin-top: 14px; background: #10121a;
+    border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    font-size: 13px; line-height: 1.6;
+  }
+  .result-box.show { display: block; }
+  .result-box .label {
+    color: var(--text-dim); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.04em; margin-bottom: 4px; margin-top: 10px;
+  }
+  .result-box .label:first-child { margin-top: 0; }
+  .result-box .value { white-space: pre-wrap; }
+  .result-box .value.mono {
+    font-family: var(--mono); background: #0a0b10; padding: 10px;
+    border-radius: 6px; overflow-x: auto;
+  }
+  .sources { display: flex; flex-wrap: wrap; gap: 6px; }
+  .source-chip {
+    background: #1c2333; color: #7fa8f5; font-family: var(--mono);
+    font-size: 11px; padding: 3px 8px; border-radius: 4px;
+  }
+  .exit-ok { color: var(--success); font-weight: 600; }
+  .exit-fail { color: var(--error); font-weight: 600; }
+  .filename-tag {
+    font-size: 12px; color: var(--text-dim); margin-bottom: 10px;
+    display: none; align-items: center; gap: 6px;
+  }
+  .filename-tag.show { display: flex; }
+  .filename-tag .dot { background: var(--success); }
+  .flow-hint {
+    font-size: 12px; color: var(--text-dim); background: #10121a;
+    border: 1px dashed var(--border); border-radius: 8px; padding: 8px 12px;
+    margin-bottom: 16px;
+  }
+
+  /* --- Routing panel (live model-routing display) --- */
+  .routing-panel {
+    display: none; margin: 12px 0; padding: 12px 14px;
+    background: #0d1420; border: 1px solid #1e3a5f; border-radius: 8px;
+    font-size: 12px; font-family: var(--mono);
+  }
+  .routing-panel.show { display: block; }
+  .routing-step {
+    display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  }
+  .routing-step .icon { width: 16px; text-align: center; }
+  .routing-final {
+    margin-top: 6px; padding-top: 8px; border-top: 1px dashed #1e3a5f;
+    color: var(--success); font-weight: 600;
+  }
+  .method-tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 3px;
+    background: #2a4a8a; color: #a8c6ff; margin-left: 6px;
+  }
+  .method-tag.agent { background: #4a2a8a; color: #d0b8ff; }
+</style>
+</head>
+<body>
+
+  <h1>Sovereign AI Workbench</h1>
+  <div class="subtitle">Self-hosted, air-gapped assistant — no data leaves this machine</div>
+  <span class="badge" id="healthBadge"><span class="dot"></span> checking backend…</span>
+
+  <br><br>
+
+  <!-- SECTION 1 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">1</div>
+      <h3>Scanned document → approval note</h3>
+    </div>
+    <div class="card-desc">Upload a scanned inspection report or drawing. The system reads it and drafts a Word approval note.</div>
+    <div class="model-tag">tesseract OCR + moondream:1.8b + qwen2.5:1.5b-instruct</div>
+
+    <input type="file" id="scanFile" accept="image/*,.pdf" />
+    <span class="filename-tag" id="uploadedTag"><span class="dot"></span><span id="uploadedName"></span></span>
+
+    <div class="btn-row">
+      <button onclick="uploadScan()">Upload file</button>
+      <button id="genNoteBtn" onclick="runInspection()" disabled>Generate approval note</button>
+    </div>
+    <div class="flow-hint">Order: upload first, then generate — the second button unlocks once a file is uploaded.</div>
+
+    <div class="routing-panel" id="inspectionRouting"></div>
+    <div class="status-line" id="inspectionStatus"><span class="spinner"></span><span class="statusText"></span></div>
+    <div class="result-box" id="inspectionResult"></div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">2</div>
+      <h3>Coding agent (sandboxed)</h3>
+    </div>
+    <div class="card-desc">Describe a task. Code is generated, then executed in an isolated, network-disabled Docker container.</div>
+    <div class="model-tag">qwen2.5-coder:1.5b &rarr; docker sandbox (no network)</div>
+
+    <textarea id="codeTask">Write a function to calculate pipe wall thickness per ASME B31.3 given pressure, diameter, and allowable stress, then print a test result</textarea>
+    <div class="btn-row">
+      <button onclick="runCode()">Run coding agent</button>
+    </div>
+
+    <div class="routing-panel" id="codeRouting"></div>
+    <div class="status-line" id="codeStatus"><span class="spinner"></span><span class="statusText"></span></div>
+    <div class="result-box" id="codeResult"></div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step-num">3</div>
+      <h3>Ask the internal knowledge base</h3>
+    </div>
+    <div class="card-desc">Answers are grounded only in your ingested SOPs, manuals, and correspondence — with sources cited.</div>
+    <div class="model-tag">nomic-embed-text + postgres/pgvector + qwen2.5:1.5b-instruct</div>
+
+    <input type="text" id="ragQuestion" placeholder="e.g. What is the SOP for valve isolation?" />
+    <div class="btn-row">
+      <button onclick="runRag()">Ask</button>
+    </div>
+
+    <div class="routing-panel" id="ragRouting"></div>
+    <div class="status-line" id="ragStatus"><span class="spinner"></span><span class="statusText"></span></div>
+    <div class="result-box" id="ragResult"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
