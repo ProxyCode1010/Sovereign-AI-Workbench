@@ -1,6 +1,14 @@
 import requests
 from config import OLLAMA_HOST, GENERAL_MODEL, CODE_MODEL, VISION_MODEL
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 CODE_KEYWORDS = ["code", "script", "function", "python", "bug", "debug", "sql", "program", "compile", "algorithm"]
 VISION_KEYWORDS = ["image", "photo", "scan", "drawing", "diagram", "picture", "ocr"]
 QUESTION_STARTERS = ("what", "who", "when", "where", "why", "how", "is ", "does", "can ", "explain", "list", "give me")
@@ -46,6 +54,7 @@ def keyword_classify(task_text: str) -> str | None:
     return None
 
 
+@traceable(name="llm_classify", run_type="chain")
 def llm_classify(task_text: str) -> str:
     """Slow path — asks the general model itself to decide, for genuinely ambiguous queries."""
     try:
@@ -71,6 +80,7 @@ def llm_classify(task_text: str) -> str:
     return "general"
 
 
+@traceable(name="classify_task", run_type="chain")
 def classify_task(task_text: str, has_image: bool = False) -> tuple[str, str]:
     """Returns (category, method) where method is 'image_flag' | 'keyword' | 'llm_agent'."""
     if has_image:
@@ -84,6 +94,7 @@ def classify_task(task_text: str, has_image: bool = False) -> tuple[str, str]:
     return llm_result, "llm_agent"
 
 
+@traceable(name="get_model_for_task", run_type="chain")
 def get_model_for_task(task_text: str, has_image: bool = False):
     kind, method = classify_task(task_text, has_image)
     model = MODEL_MAP[kind]
@@ -91,6 +102,7 @@ def get_model_for_task(task_text: str, has_image: bool = False):
     return model, kind
 
 
+@traceable(name="call_ollama", run_type="llm")
 def call_ollama(model: str, prompt: str, images: list = None, system: str = None) -> str:
     payload = {
         "model": model,

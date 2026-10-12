@@ -6,6 +6,14 @@ import io
 from model_router import call_ollama
 from config import VISION_MODEL
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 def pdf_page_to_image_b64(pdf_path: str, page_num: int = 0) -> str:
     doc = fitz.open(pdf_path)
     page = doc[page_num]
@@ -23,10 +31,12 @@ def tesseract_ocr(image_b64: str) -> str:
     img = Image.open(io.BytesIO(img_bytes))
     return pytesseract.image_to_string(img)
 
+@traceable(name="vision_describe", run_type="llm")
 def vision_describe(image_b64: str, prompt: str) -> str:
     """Use moondream for understanding scanned drawings / handwritten notes / photos."""
     return call_ollama(VISION_MODEL, prompt, images=[image_b64])
 
+@traceable(name="analyze_scanned_document", run_type="tool")
 def analyze_scanned_document(path: str, instruction: str) -> dict:
     """Combines raw OCR text + vision-model reasoning for best accuracy on scans."""
     if path.lower().endswith(".pdf"):

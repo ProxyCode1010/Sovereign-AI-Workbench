@@ -3,6 +3,15 @@ from pptx.util import Inches
 from config import OUTPUT_DIR
 import os
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+@traceable(name="create_slide_deck", run_type="tool")
 def create_slide_deck(filename: str, slides: list[dict]) -> str:
     """slides: [{"title": ..., "bullets": [...]}]"""
     prs = Presentation()

@@ -33,6 +33,10 @@ services:
       - OLLAMA_HOST=http://host.docker.internal:11434
       - SANDBOX_IMAGE=sw_sandbox:latest
       - HOST_SANDBOX_DIR_ABS=${HOST_SANDBOX_DIR_ABS}
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY:-}
+      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-sovereign-ai-workbench}
+      - LANGCHAIN_ENDPOINT=${LANGCHAIN_ENDPOINT:-https://api.smith.langchain.com}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

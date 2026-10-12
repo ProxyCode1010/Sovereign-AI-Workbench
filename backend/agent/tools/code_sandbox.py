@@ -3,6 +3,14 @@ import uuid
 import os
 from config import SANDBOX_IMAGE
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 _client = docker.from_env()
 
 # This must be the path on the HOST machine, since docker.sock talks to the host daemon.
@@ -10,6 +18,7 @@ _client = docker.from_env()
 HOST_SANDBOX_DIR = os.getenv("HOST_SANDBOX_DIR", "/app/data/sandbox_tmp")
 CONTAINER_SANDBOX_DIR = "/app/data/sandbox_tmp"
 
+@traceable(name="run_code_in_sandbox", run_type="tool")
 def run_code_in_sandbox(code: str, timeout: int = 20) -> dict:
     job_id = str(uuid.uuid4())
     script_name = f"script_{job_id}.py"

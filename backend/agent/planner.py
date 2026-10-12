@@ -1,6 +1,14 @@
 import json
 from model_router import call_ollama, get_model_for_task
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
 PLANNER_SYSTEM = """You are a task planner for an industrial AI assistant.
 Break the user's task into a short ordered list of steps using ONLY these tools:
 - rag_search(query)
@@ -14,6 +22,7 @@ Break the user's task into a short ordered list of steps using ONLY these tools:
 Respond ONLY with valid JSON: {"steps": [{"tool": "...", "reason": "..."}]}
 Keep it to 2-5 steps. No extra text."""
 
+@traceable(name="make_plan", run_type="chain")
 def make_plan(task_text: str) -> dict:
     model, _ = get_model_for_task(task_text)
     raw = call_ollama(model, task_text, system=PLANNER_SYSTEM)

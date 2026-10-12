@@ -2,6 +2,15 @@ from docx import Document
 from config import OUTPUT_DIR
 import os
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+@traceable(name="create_approval_note", run_type="tool")
 def create_approval_note(filename: str, title: str, findings: list[str], recommendation: str) -> str:
     doc = Document()
     doc.add_heading(title, level=1)

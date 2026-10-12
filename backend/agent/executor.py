@@ -7,7 +7,16 @@ from agent.tools.xlsx_writer import create_calculation_sheet
 from agent.tools.pptx_writer import create_slide_deck
 from model_router import call_ollama, get_model_for_task, classify_task
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
 
+
+@traceable(name="execute_inspection_to_approval_note", run_type="chain")
 def execute_inspection_to_approval_note(scan_path: str, note_title: str) -> dict:
     """End-to-end demo flow: scanned inspection report -> approval note (docx)."""
     from config import VISION_MODEL
@@ -59,6 +68,7 @@ List each finding from the report as one line per finding, then on a final new l
         "routing_method": "image_flag",
     }
 
+@traceable(name="execute_coding_task", run_type="chain")
 def execute_coding_task(task_description: str) -> dict:
     """End-to-end demo flow: code request -> generated code -> run in sandbox -> verified output."""
     category, method = classify_task(task_description)
@@ -105,6 +115,7 @@ def execute_coding_task(task_description: str) -> dict:
     }
 
 
+@traceable(name="execute_rag_query", run_type="chain")
 def execute_rag_query(question: str) -> dict:
     """End-to-end demo flow: grounded Q&A against internal SOPs/manuals."""
     category, method = classify_task(question)
