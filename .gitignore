@@ -22,25 +22,42 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Environment Variables
-.env
+# Node.js & React Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Virtual Environment
-.venv
+# Environment Variables & Secrets (CRITICAL)
+.env
+.env.local
+.env.*.local
+*.env.backup
+
+# Virtual Environments
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Logs and Data
+# Logs and Runtime Data
 data/
 *.log
 logs/
+data/outputs/
+data/uploads/
+data/sandbox_tmp/
 
-# IDE and OS
+# IDE and OS artifacts
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
+*.swp
+*.swo
